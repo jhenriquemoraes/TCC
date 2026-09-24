@@ -8,6 +8,7 @@ namespace OrderApi.DTOs.Requests
     public class ProductRequest
     {
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public int SaleQuantity { get; set; }
+        public decimal SaleValue { get; set; }
     }
 }

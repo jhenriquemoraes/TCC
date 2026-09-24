@@ -1,8 +1,8 @@
-using DeliverytService.Messaging;
+using DeliveryService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHostedService<ProductsReadyConsumer>();
+builder.Services.AddHostedService<ProductItemSeparatedConsumer>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

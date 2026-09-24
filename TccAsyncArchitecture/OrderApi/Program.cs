@@ -1,3 +1,4 @@
+using OrderApi.Interfaces;
 using OrderApi.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);

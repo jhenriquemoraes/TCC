@@ -6,19 +6,13 @@ using MessageContracts.Events;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace ProductService.Messaging
+namespace DeliveryService.Messaging
 {
-    public class OrderCreatedConsumer : BackgroundService
+    public class ProductItemSeparatedConsumer :  BackgroundService
     {
-        private readonly IMessagePublisher _messagePublisher;
-        public OrderCreatedConsumer(IMessagePublisher messagePublisher)
-        {
-            this._messagePublisher = messagePublisher;
-        }
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Console.WriteLine("ProductService Consumer iniciou.");
+            Console.WriteLine("DeliveryService Consumer iniciou.");
             ConnectionFactory factory = new ConnectionFactory()
             {
                 HostName = "localhost",
@@ -29,12 +23,22 @@ namespace ProductService.Messaging
             await using var connection = await factory.CreateConnectionAsync();
             await using var channel = await connection.CreateChannelAsync();
 
+            await channel.ExchangeDeclareAsync(
+                exchange: "product_item_separated_exchange",
+                type: ExchangeType.Fanout,
+                durable: true);
+
             await channel.QueueDeclareAsync(
-                queue: "order_created_product_queue",
+                queue: "product_item_separated_delivery_queue",
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null);
+
+            await channel.QueueBindAsync(
+                queue: "product_item_separated_delivery_queue",
+                exchange: "product_item_separated_exchange",
+                routingKey: "");
 
             var consumer = new AsyncEventingBasicConsumer(channel);
 
@@ -44,42 +48,36 @@ namespace ProductService.Messaging
 
                 var message = System.Text.Encoding.UTF8.GetString(body);
 
-                var orderCreated =
-                    System.Text.Json.JsonSerializer.Deserialize<OrderCreated>(message);
+                var productItemSeparated = System.Text.Json.JsonSerializer.Deserialize<ProductItemSeparated>(message);
 
-                if (orderCreated is null)
+                if (productItemSeparated is null)
                 {
-                    Console.WriteLine("Could not deserialize OrderCreated.");
+                    Console.WriteLine("Could not deserialize ProductItemSeparated.");
                     return;
                 }
 
-                Console.WriteLine($"Received message: {orderCreated.OrderId}");
+                //------- Saida no Console 
 
+                Console.WriteLine(
+                    $"Item recebido para entrega - " +
+                    $"Pedido: {productItemSeparated.OrderId} | " +
+                    $"Produto: {productItemSeparated.ProductId} | " +
+                    $"Quantidade: {productItemSeparated.SaleQuantity}");
 
-                Console.WriteLine($"1 - OrderCreated recebido: {orderCreated.OrderId}");
-                var productsReady = new ProductsReady
-                {
-                    OrderId = orderCreated.OrderId
-                };
-                Console.WriteLine("2 - Vou publicar ProductsReady");
-                await _messagePublisher.PublishAsync(productsReady);
-
-                Console.WriteLine($"3 - ProductsReady publicado {orderCreated.OrderId}");
+                // -----------
 
                 await channel.BasicAckAsync(
                     deliveryTag: ea.DeliveryTag,
                     multiple: false);
-                Console.WriteLine("4 - ACK realizado");
             };
 
             await channel.BasicConsumeAsync(
-                queue: "order_created_product_queue",
+                queue: "product_item_separated_delivery_queue",
                 autoAck: false,
                 consumer: consumer);
 
-            Console.WriteLine("Consumer registrado no RabbitMQ.");
-
             await Task.Delay(Timeout.Infinite, stoppingToken);
-        }
+        }       
+
     }
 }

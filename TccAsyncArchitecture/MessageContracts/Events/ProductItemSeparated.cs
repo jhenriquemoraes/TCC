@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace MessageContracts.DTOs
+namespace MessageContracts.Events
 {
-    public class ProductData
+    public class ProductItemSeparated
     {
+        public Guid OrderId { get; set; }
         public int ProductId { get; set; }
         public int SaleQuantity { get; set; }
-        public decimal SaleValue { get; set; }
     }
 }

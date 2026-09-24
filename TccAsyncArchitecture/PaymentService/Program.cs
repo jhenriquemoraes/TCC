@@ -1,9 +1,10 @@
+using PaymentService.Interfaces;
 using PaymentService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHostedService<OrderCreatedConsumer>();
-builder.Services.AddHostedService<ProductsReadyConsumer>();
+builder.Services.AddTransient<IMessagePublisher, RabbitMqPublisher>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

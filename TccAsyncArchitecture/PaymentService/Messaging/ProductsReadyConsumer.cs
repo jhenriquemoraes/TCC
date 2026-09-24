@@ -54,7 +54,6 @@ namespace PaymentService.Messaging
                 }
 
                 Console.WriteLine($"PaymentService recebido: {orderCreated.OrderId}");
-                Console.WriteLine($"Pagamento/nota fechada para o pedido {orderCreated.OrderId}");
 
                 await channel.BasicAckAsync(
                     deliveryTag: ea.DeliveryTag,

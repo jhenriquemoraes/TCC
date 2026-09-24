@@ -37,7 +37,8 @@ namespace OrderApi.Controllers
                 Products = request.Products.Select(p => new ProductData
                 {
                     ProductId = p.ProductId,
-                    Quantity = p.Quantity,
+                    SaleQuantity = p.SaleQuantity,
+                    SaleValue = p.SaleValue
                 }).ToList(),
                 Payment = new PaymentData
                 {

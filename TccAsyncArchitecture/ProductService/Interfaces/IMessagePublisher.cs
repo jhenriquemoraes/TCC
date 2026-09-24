@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ProductService.Messaging
+namespace ProductService.Interfaces
 {
     public interface IMessagePublisher
     {

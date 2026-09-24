@@ -1,15 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using MessageContracts.Events;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using PaymentService.Interfaces;
 
 namespace PaymentService.Messaging
 {
     public class OrderCreatedConsumer : BackgroundService
     {
+        private readonly IMessagePublisher _messagePublisher;
+        public OrderCreatedConsumer(IMessagePublisher messagePublisher)
+        {
+            _messagePublisher = messagePublisher;
+        }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var factory = new ConnectionFactory()
@@ -21,6 +23,11 @@ namespace PaymentService.Messaging
 
             await using var connection = await factory.CreateConnectionAsync();
             await using var channel = await connection.CreateChannelAsync();
+
+            await channel.ExchangeDeclareAsync(
+                exchange: "order_created_exchange",
+                type: ExchangeType.Fanout,
+                durable: true);
 
             await channel.QueueDeclareAsync(
                 queue: "order_created_payment_queue",
@@ -53,8 +60,25 @@ namespace PaymentService.Messaging
                     return;
                 }
 
+                var paymentApproved = !string.IsNullOrWhiteSpace(orderCreated.Payment.PaymentMethod);
+
+                if (paymentApproved)
+                {
+                    var paymentConfirmed = new PaymentConfirmed
+                    {
+                        OrderId = orderCreated.OrderId,
+                        Products = orderCreated.Products
+                    };
+
+                    await _messagePublisher.PublishAsync(paymentConfirmed);
+                }
+                else
+                {
+                    Console.WriteLine($"Payment not approved for OrderId: {orderCreated.OrderId}");
+                }
+
                 Console.WriteLine($"OrderCreated recebido: {orderCreated.OrderId}");
-                Console.WriteLine($"Pagamento/nota Aberta para o pedido {orderCreated.OrderId}");
+
 
                 await channel.BasicAckAsync(
                     deliveryTag: ea.DeliveryTag,

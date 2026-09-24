@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
+using ProductService.Interfaces;
 
 namespace ProductService.Messaging
 {
@@ -31,7 +32,7 @@ namespace ProductService.Messaging
             var body = Encoding.UTF8.GetBytes(jsonMessage);
 
             await channel.BasicPublishAsync(
-                exchange: "products_ready_exchange",
+                exchange: "product_item_separated_exchange",
                 routingKey: "",
                 body: body);
         }

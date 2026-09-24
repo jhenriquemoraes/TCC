@@ -6,13 +6,14 @@ using MessageContracts.Events;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace DeliverytService.Messaging
+namespace InvoiceService.Messaging
 {
-    public class ProductsReadyConsumer : BackgroundService
+    public class PaymentConfirmedConsumer : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var factory = new ConnectionFactory()
+            Console.WriteLine("InvoiceService Consumer iniciou.");
+            ConnectionFactory factory = new ConnectionFactory()
             {
                 HostName = "localhost",
                 UserName = "guest",
@@ -22,16 +23,21 @@ namespace DeliverytService.Messaging
             await using var connection = await factory.CreateConnectionAsync();
             await using var channel = await connection.CreateChannelAsync();
 
+            await channel.ExchangeDeclareAsync(
+                exchange: "payment_confirmed_exchange",
+                type: ExchangeType.Fanout,
+                durable: true);
+
             await channel.QueueDeclareAsync(
-                queue: "products_ready_delivery_queue",
+                queue: "payment_confirmed_invoice_queue",
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null);
 
             await channel.QueueBindAsync(
-                queue: "products_ready_delivery_queue",
-                exchange: "products_ready_exchange",
+                queue: "payment_confirmed_invoice_queue",
+                exchange: "payment_confirmed_exchange",
                 routingKey: "");
 
             var consumer = new AsyncEventingBasicConsumer(channel);
@@ -40,30 +46,30 @@ namespace DeliverytService.Messaging
             {
                 var body = ea.Body.ToArray();
 
-                var message =
-                    System.Text.Encoding.UTF8.GetString(body);
+                var message = System.Text.Encoding.UTF8.GetString(body);
 
-                var orderCreated =
-                    System.Text.Json.JsonSerializer
-                        .Deserialize<OrderCreated>(message);
+                var paymentConfirmed = System.Text.Json.JsonSerializer.Deserialize<PaymentConfirmed>(message);
 
-                if (orderCreated is null)
+                if (paymentConfirmed is null)
                 {
-                    Console.WriteLine("Could not deserialize OrderCreated.");
+                    Console.WriteLine("Could not deserialize PaymentConfirmed.");
                     return;
                 }
 
-                Console.WriteLine($"DeliveryService recebido: {orderCreated.OrderId}");
+                Console.WriteLine($"InvoiceService recebeu PaymentConfirmed: {paymentConfirmed.OrderId}");
 
                 await channel.BasicAckAsync(
                     deliveryTag: ea.DeliveryTag,
                     multiple: false);
+                Console.WriteLine("4 - ACK realizado");
             };
 
             await channel.BasicConsumeAsync(
-                queue: "products_ready_delivery_queue",
+                queue: "payment_confirmed_invoice_queue",
                 autoAck: false,
                 consumer: consumer);
+
+            Console.WriteLine("Consumer registrado no RabbitMQ.");
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }

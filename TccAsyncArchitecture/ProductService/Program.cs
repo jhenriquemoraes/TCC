@@ -1,9 +1,9 @@
+using ProductService.Interfaces;
 using ProductService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddTransient<IMessagePublisher, RabbitMqPublisher>();
-builder.Services.AddHostedService<OrderCreatedConsumer>();
+builder.Services.AddHostedService<PaymentConfirmedConsumer>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
